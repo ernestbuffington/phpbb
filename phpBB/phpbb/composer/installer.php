@@ -20,8 +20,10 @@ use Composer\Filter\PlatformRequirementFilter\PlatformRequirementFilterFactory;
 use Composer\IO\IOInterface;
 use Composer\IO\NullIO;
 use Composer\Json\JsonFile;
+use Composer\Json\JsonValidationException;
 use Composer\Package\BasePackage;
 use Composer\Package\CompletePackage;
+use Composer\PartialComposer;
 use Composer\Repository\ComposerRepository;
 use Composer\Semver\Constraint\ConstraintInterface;
 use Composer\Util\HttpDownloader;
@@ -145,11 +147,12 @@ class installer
 	 * @param array $packages Packages to install.
 	 *        Each entry may be a name or an array associating a version constraint to a name
 	 * @param array $whitelist White-listed packages (packages that can be installed/updated/removed)
-	 * @param IOInterface|null $io IO object used for the output
+	 * @param io\io_interface|null $io IO object used for the output
 	 *
 	 * @throws runtime_exception
+	 * @throws JsonValidationException
 	 */
-	protected function do_install(array $packages, $whitelist, IOInterface $io = null)
+	protected function do_install(array $packages, $whitelist, io\io_interface $io = null)
 	{
 		if (!$io)
 		{
@@ -160,7 +163,8 @@ class installer
 
 		$this->generate_ext_json_file($packages);
 
-		$composer = Factory::create($io, $this->get_composer_ext_json_filename(), false);
+		$composer = $this->get_composer($this->get_composer_ext_json_filename());
+
 		$install = \Composer\Installer::create($io, $composer);
 
 		$composer->getInstallationManager()->setOutputProgress(false);
@@ -218,6 +222,32 @@ class installer
 	}
 
 	/**
+	 * Create instance of composer for supplied config file
+	 *
+	 * @param string|null $config_file Path to config file relative to phpBB root dir or null
+	 *
+	 * @return Composer|PartialComposer
+	 * @throws JsonValidationException
+	 */
+	protected function get_composer(?string $config_file): PartialComposer
+	{
+		static $composer_factory;
+		if (!$composer_factory)
+		{
+			$composer_factory = new Factory();
+		}
+
+		$io = new NullIO();
+
+		return $composer_factory->createComposer(
+			$io,
+			$config_file,
+			false,
+			filesystem_helper::realpath('')
+		);
+	}
+
+	/**
 	 * Returns the list of currently installed packages
 	 *
 	 * /!\ Doesn't change the current working directory
@@ -232,8 +262,7 @@ class installer
 
 		try
 		{
-			$io = new NullIO();
-			$composer = Factory::create($io, $this->get_composer_ext_json_filename(), false);
+			$composer = $this->get_composer($this->get_composer_ext_json_filename());
 
 			$installed = [];
 
@@ -291,7 +320,7 @@ class installer
 			$this->generate_ext_json_file($this->do_get_installed_packages(explode(',', self::PHPBB_TYPES)));
 
 			$io = new NullIO();
-			$composer = Factory::create($io, $this->get_composer_ext_json_filename(), false);
+			$composer = $this->get_composer($this->get_composer_ext_json_filename());
 
 			/** @var ConstraintInterface $core_constraint */
 			$core_constraint = $composer->getPackage()->getRequires()['phpbb/phpbb']->getConstraint();
@@ -473,12 +502,13 @@ class installer
 	 *
 	 * @param array $packages Packages to update.
 	 *        Each entry may be a name or an array associating a version constraint to a name
+	 * @throws JsonValidationException
 	 */
 	protected function generate_ext_json_file(array $packages)
 	{
 		$io = new NullIO();
 
-		$composer = Factory::create($io, null, false);
+		$composer = $this->get_composer(null);
 
 		$core_packages = $this->get_core_packages($composer);
 

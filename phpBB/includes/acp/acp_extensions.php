@@ -189,7 +189,7 @@ class acp_extensions
 
 				$this->list_enabled_exts($phpbb_extension_manager, $managed_packages);
 				$this->list_disabled_exts($phpbb_extension_manager, $managed_packages);
-				$this->list_available_exts($phpbb_extension_manager, $managed_packages);
+				$this->list_available_exts($managed_packages);
 
 				$this->tpl_name = 'acp_ext_list';
 
@@ -767,7 +767,7 @@ class acp_extensions
 	 * @param \phpbb\extension\manager  $phpbb_extension_manager     An instance of the extension manager
 	 * @param array                     $managed_packages            List of managed packages
 	 *
-	 * @return null
+	 * @return void
 	 */
 	public function list_enabled_exts(\phpbb\extension\manager $phpbb_extension_manager, array $managed_packages)
 	{
@@ -850,7 +850,7 @@ class acp_extensions
 	 * @param \phpbb\extension\manager  $phpbb_extension_manager     An instance of the extension manager
 	 * @param array                     $managed_packages            List of managed packages
 	 *
-	 * @return null
+	 * @return void
 	 */
 	public function list_disabled_exts(\phpbb\extension\manager $phpbb_extension_manager, array $managed_packages)
 	{
@@ -928,12 +928,11 @@ class acp_extensions
 	/**
 	 * Lists all the available extensions and dumps to the template
 	 *
-	 * @param \phpbb\extension\manager  $phpbb_extension_manager     An instance of the extension manager
 	 * @param array                     $managed_packages            List of managed packages
 	 *
-	 * @return null
+	 * @return void
 	 */
-	public function list_available_exts(\phpbb\extension\manager $phpbb_extension_manager, array $managed_packages)
+	public function list_available_exts(array $managed_packages)
 	{
 		$uninstalled = array_diff_key($this->ext_manager->all_available(), $this->ext_manager->all_configured());
 
@@ -1027,7 +1026,7 @@ class acp_extensions
 	* Outputs extension metadata into the template
 	*
 	* @param array $metadata Array with all metadata for the extension
-	* @return null
+	* @return void
 	*/
 	public function output_metadata_to_template($metadata)
 	{
